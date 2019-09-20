@@ -20,6 +20,7 @@ int getInput(char cmd[], char *parameters[]){
 	buffer = (char *)malloc(size * sizeof(char));
 	getline(&buffer, &size, stdin);
 	
+
 	if(strcmp(buffer, "\n") == 0){
 		free(buffer);
 		 write(STDERR_FILENO, ERROR_MESSAGE, strlen(ERROR_MESSAGE));
