@@ -3,34 +3,59 @@
 #include<string.h>
 #include<sys/wait.h>
 #include<unistd.h>
+#include<ctype.h>
 
 char ERROR_MESSAGE[30] = "An error has occurred\n";
 void error();
+FILE *file = NULL;
 
 void displayPrompt(){
-	printf("dish> ");
+	printf("dash> ");
 }
 
-int getInput(char cmd[], char *parameters[]){
+
+
+int getInput(char cmd[], char *parameters[], int batchFlag){
 	char *buffer;
 	size_t size = 1024;
 	char *tok;
 	char *array[20];
-
-	buffer = (char *)malloc(size * sizeof(char));
-	getline(&buffer, &size, stdin);
 	
+	// allocate space for input buffer
+	buffer = (char *)malloc(size * sizeof(char));
+	
+	// check to see if batch file is being read
+	if(batchFlag == 1){
+		 if(feof(file)){
+                        free(buffer);
+			parameters[0] = "exit";
+			for(int j = 1; j < 20; j++)
+				parameters[j] = "exit";
+                        return 1;
+                }
 
-	if(strcmp(buffer, "\n") == 0){
+		if(getline(&buffer, &size, file) == -1 )
+			error();
+	}
+	else{
+		// read from stdin
+		if(getline(&buffer, &size, stdin) == -1)
+			error();
+	}
+	
+	// check if user entered newline, space, or tab
+	if(strcmp(buffer, "\n") == 0 || strcmp(buffer, " \n") == 0 || strcmp(buffer, "\t\n") == 0){
 		free(buffer);
-		 write(STDERR_FILENO, ERROR_MESSAGE, strlen(ERROR_MESSAGE));
+		if( write(STDERR_FILENO, ERROR_MESSAGE, strlen(ERROR_MESSAGE)) == -1);
+			
 		return -1;
 	}
 
 	strcpy(cmd, buffer);
 	
+	// tokenize command
 	tok = strtok(buffer, " \n");
-
+	
 	int i = 0;
 	while(tok != NULL){
 		array[i++] = strdup(tok);
@@ -43,54 +68,59 @@ int getInput(char cmd[], char *parameters[]){
 	}
 	parameters[i] = NULL;
 	
-	 if(strcmp(parameters[0],"cd") == 0){//cd
+	// implement cd
+	 if(strcmp(parameters[0],"cd") == 0){
                                 if(i==2){
                                         if(chdir(parameters[1])!=0){
-                                                write(STDERR_FILENO, ERROR_MESSAGE, strlen(ERROR_MESSAGE));
-                                                printf("In input fx\n");
+                                               if( write(STDERR_FILENO, ERROR_MESSAGE, strlen(ERROR_MESSAGE)));
                                         }
                                  }
 
                         }
 
+	 
 
+	
 
 	free(buffer);
 	return 1;
 }
 
 void error(){
-	write(STDERR_FILENO, ERROR_MESSAGE, strlen(ERROR_MESSAGE));
+	if(write(STDERR_FILENO, ERROR_MESSAGE, strlen(ERROR_MESSAGE)));
         exit(1);
 }
 
-int main(){
-	
-	char cmd[100], cmdPath[100], *parameters[20];
-	char *envp[] = {(char *) "PATH=/bin", 0};
-//	printf("dish> ");
 
-/*	
-	// get command and parameters
-	getInput(cmd, parameters);
-	printf("Printing from main\nCommand: %s\n", cmd);
+
+int main(int argc, char* argv[]){
 	
-	for(int i = 0; i < 20; i++){
-		if(parameters[i] == NULL)
-			break;
-		else
-			printf("Parameter: %s\n", parameters[i]);
+	char cmd[100], *cmdPath, *parameters[20];
+	char *envp[] = {(char *) "PATH=/bin", 0};	
+	int batchFlag = 0;
+
+	// check if multiple arguments were passed when calling DASH
+	if(argc == 1){
+		file=stdin;
 	}
-	// ok so now we have the command stores in cmd and parameters in parameters
+	else if(argc == 2){
+		batchFlag = 1;
+		char *bFile = strdup(argv[1]);
+		file = fopen(bFile, "r");
+		if(file == NULL) {
+			error();
+		}
 	
-*/
-
+	}
+	
+	
+	// command is stored in cmd and parameters in parameters
 	while(1){
 		int inputReturn = 0;
-		displayPrompt();
-		inputReturn = getInput(cmd, parameters);
+		if(batchFlag != 1)
+			displayPrompt();
+		inputReturn = getInput(cmd, parameters, batchFlag);
 	
-
 		if(fork() != 0)
 			wait(NULL);
 		else{
@@ -106,13 +136,27 @@ int main(){
 			else
 				exit(0);
 		}
-			
+		
+		int i = 0;
+		for(int j = 0; j<20; j++){
+			if(parameters[j] != NULL)
+				i++;
+		}	
 		if(strcmp(cmd, "exit") == 0)
 				break;
-
+		else if(strcmp(cmd,"path") == 0){
+                               
+                                if(i==2){
+                                        
+                                        cmdPath=strdup(parameters[1]);
+                                         if(cmdPath[strlen(cmdPath)-1]!='/'){
+                                                strcat(cmdPath,"/");
+                                        }      
+                                }
+		}
                              
 
 	}
 	return 0;
-	
+		
 }

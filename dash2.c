@@ -7,12 +7,13 @@
 
 char ERROR_MESSAGE[30] = "An error has occurred\n";
 void error();
+FILE *file = NULL;
 
 void displayPrompt(){
 	printf("dash> ");
 }
 
-FILE *file = NULL;
+
 
 int getInput(char cmd[], char *parameters[], int batchFlag){
 	char *buffer;
@@ -94,7 +95,7 @@ void error(){
 
 int main(int argc, char* argv[]){
 	
-	char cmd[100], cmdPath[100], *parameters[20];
+	char cmd[100], *cmdPath, *parameters[20];
 	char *envp[] = {(char *) "PATH=/bin", 0};	
 	int batchFlag = 0;
 
@@ -143,11 +144,19 @@ int main(int argc, char* argv[]){
 		}	
 		if(strcmp(cmd, "exit") == 0)
 				break;
-		
-
+		else if(strcmp(cmd,"path") == 0){
+                               
+                                if(i==2){
+                                        
+                                        cmdPath=strdup(parameters[1]);
+                                         if(cmdPath[strlen(cmdPath)-1]!='/'){
+                                                strcat(cmdPath,"/");
+                                        }      
+                                }
+		}
                              
 
 	}
 	return 0;
-	
+		
 }
