@@ -5,7 +5,6 @@
 #include<unistd.h>
 #include<ctype.h>
 
-
 char ERROR_MESSAGE[30] = "An error has occurred\n";
 void error();
 
@@ -13,18 +12,29 @@ void displayPrompt(){
 	printf("dish> ");
 }
 
+FILE *file = NULL;
 
-int getInput(char cmd[], char *parameters[]){
+int getInput(char cmd[], char *parameters[], int batchFlag){
 	char *buffer;
 	size_t size = 1024;
 	char *tok;
 	char *array[20];
 
 	buffer = (char *)malloc(size * sizeof(char));
-	getline(&buffer, &size, stdin);
 	
+	if(batchFlag == 1){
+		 if(feof(file)){
+                        free(buffer);
+                        return -1;
+                }
 
-
+		getline(&buffer, &size, file);
+	}
+	else
+		getline(&buffer, &size, stdin);
+	
+	
+	
 	if(strcmp(buffer, "\n") == 0 || strcmp(buffer, " \n") == 0 || strcmp(buffer, "\t\n") == 0){
 		free(buffer);
 		 write(STDERR_FILENO, ERROR_MESSAGE, strlen(ERROR_MESSAGE));
@@ -78,29 +88,33 @@ void redirect(char *parameters[]){
 	}
 }
 
-int main(){
+int main(int argc, char* argv[]){
 	
 	char cmd[100], cmdPath[100], *parameters[20];
-	char *envp[] = {(char *) "PATH=/bin", 0};
-	FILE *file = NULL;	
-
-	
-	getInput(cmd, parameters);
-	printf("Printing from main\nCommand: %s\n", cmd);
-	
-	for(int i = 0; i < 20; i++){
-		if(parameters[i] == NULL)
-			break;
-		else
-			printf("Parameter: %s\n", parameters[i]);
+	char *envp[] = {(char *) "PATH=/bin", 0};	
+	int batchFlag = 0;
+	if(argc == 1){
+		file=stdin;
 	}
+	else if(argc == 2){
+		batchFlag = 1;
+		char *bFile = strdup(argv[1]);
+		file = fopen(bFile, "r");
+		if(file == NULL) {
+			error();
+		}
+	
+	}
+	
+	
 	// ok so now we have the command stores in cmd and parameters in parameters
 	
 
 	while(1){
 		int inputReturn = 0;
-		displayPrompt();
-		inputReturn = getInput(cmd, parameters);
+		if(batchFlag != 1)
+			displayPrompt();
+		inputReturn = getInput(cmd, parameters, batchFlag);
 	
 
 		if(fork() != 0)
