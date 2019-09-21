@@ -9,7 +9,7 @@ char ERROR_MESSAGE[30] = "An error has occurred\n";
 void error();
 
 void displayPrompt(){
-	printf("dish> ");
+	printf("dash> ");
 }
 
 FILE *file = NULL;
@@ -19,30 +19,40 @@ int getInput(char cmd[], char *parameters[], int batchFlag){
 	size_t size = 1024;
 	char *tok;
 	char *array[20];
-
+	
+	// allocate space for input buffer
 	buffer = (char *)malloc(size * sizeof(char));
 	
+	// check to see if batch file is being read
 	if(batchFlag == 1){
 		 if(feof(file)){
                         free(buffer);
-                        return -1;
+			parameters[0] = "exit";
+			for(int j = 1; j < 20; j++)
+				parameters[j] = "exit";
+                        return 1;
                 }
 
-		getline(&buffer, &size, file);
+		if(getline(&buffer, &size, file) == -1 )
+			error();
 	}
-	else
-		getline(&buffer, &size, stdin);
+	else{
+		// read from stdin
+		if(getline(&buffer, &size, stdin) == -1)
+			error();
+	}
 	
-	
-	
+	// check if user entered newline, space, or tab
 	if(strcmp(buffer, "\n") == 0 || strcmp(buffer, " \n") == 0 || strcmp(buffer, "\t\n") == 0){
 		free(buffer);
-		 write(STDERR_FILENO, ERROR_MESSAGE, strlen(ERROR_MESSAGE));
+		if( write(STDERR_FILENO, ERROR_MESSAGE, strlen(ERROR_MESSAGE)) == -1);
+			
 		return -1;
 	}
 
 	strcpy(cmd, buffer);
-		
+	
+	// tokenize command
 	tok = strtok(buffer, " \n");
 	
 	int i = 0;
@@ -57,15 +67,18 @@ int getInput(char cmd[], char *parameters[], int batchFlag){
 	}
 	parameters[i] = NULL;
 	
-	 if(strcmp(parameters[0],"cd") == 0){//cd
+	// implement cd
+	 if(strcmp(parameters[0],"cd") == 0){
                                 if(i==2){
                                         if(chdir(parameters[1])!=0){
-                                                write(STDERR_FILENO, ERROR_MESSAGE, strlen(ERROR_MESSAGE));
-                                                printf("In input fx\n");
+                                               if( write(STDERR_FILENO, ERROR_MESSAGE, strlen(ERROR_MESSAGE)));
                                         }
                                  }
 
                         }
+
+	 
+
 	
 
 	free(buffer);
@@ -73,26 +86,19 @@ int getInput(char cmd[], char *parameters[], int batchFlag){
 }
 
 void error(){
-	write(STDERR_FILENO, ERROR_MESSAGE, strlen(ERROR_MESSAGE));
+	if(write(STDERR_FILENO, ERROR_MESSAGE, strlen(ERROR_MESSAGE)));
         exit(1);
 }
 
-void redirect(char *parameters[]){
-	
-	for(int i = 0; i < 20; i++){
-		if(parameters[i] == NULL)
-			return;
-		else if(strcmp(parameters[i], ">") == 0){
 
-		}
-	}
-}
 
 int main(int argc, char* argv[]){
 	
 	char cmd[100], cmdPath[100], *parameters[20];
 	char *envp[] = {(char *) "PATH=/bin", 0};	
 	int batchFlag = 0;
+
+	// check if multiple arguments were passed when calling DASH
 	if(argc == 1){
 		file=stdin;
 	}
@@ -107,16 +113,13 @@ int main(int argc, char* argv[]){
 	}
 	
 	
-	// ok so now we have the command stores in cmd and parameters in parameters
-	
-
+	// command is stored in cmd and parameters in parameters
 	while(1){
 		int inputReturn = 0;
 		if(batchFlag != 1)
 			displayPrompt();
 		inputReturn = getInput(cmd, parameters, batchFlag);
 	
-
 		if(fork() != 0)
 			wait(NULL);
 		else{
@@ -132,9 +135,15 @@ int main(int argc, char* argv[]){
 			else
 				exit(0);
 		}
-			
+		
+		int i = 0;
+		for(int j = 0; j<20; j++){
+			if(parameters[j] != NULL)
+				i++;
+		}	
 		if(strcmp(cmd, "exit") == 0)
 				break;
+		
 
                              
 
