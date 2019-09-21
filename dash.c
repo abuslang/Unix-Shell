@@ -33,8 +33,14 @@ int getInput(char cmd[], char *parameters[], int batchFlag){
 				parameters[j] = "exit";
                         return 1;
                 }
+		
+		 printf("in batch flag\n");
 
-		if(getline(&buffer, &size, file) == -1 )
+		if(getline(&buffer, &size, file) != -1 ){
+			printf("Buffer: %s\n", buffer);
+			
+		}
+		else
 			error();
 	}
 	else{
